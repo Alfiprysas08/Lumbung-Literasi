@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Lumbung Literasi</title>
+  <link rel="stylesheet" href="dashboard.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: "Treasure Map Deadhand", Arial, sans-serif;
+      background-color: #ececdc;
+      color: #333;
+    }
+
+    header {
+      background: #222;
+      color: gold;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      text-shadow: 1px 1px 3px black;
+    }
+
+    .logout-btn {
+      background: crimson;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    main {
+      padding: 15px;
+    }
+
+    .card {
+      background: rgba(0,0,0,0.7);
+      color: #f8f8f8;
+      border: 2px solid goldenrod;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    }
+
+    .card h2 {
+      color: gold;
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+    }
+
+    th, td {
+      border: 1px solid goldenrod;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background: rgba(255, 215, 0, 0.2);
+      color: #fff;
+    }
+
+    input, select {
+      padding: 8px;
+      border-radius: 6px;
+      border: none;
+      margin: 6px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .btn-add { background: seagreen; color: white; width: 100%; padding: 10px; margin-top: 8px; font-weight: bold; }
+    .btn-edit { background: dodgerblue; color: white; margin: 2px 0; padding: 6px; border-radius: 4px; }
+    .btn-del { background: crimson; color: white; margin: 2px 0; padding: 6px; border-radius: 4px; }
+
+    @media (max-width: 375px) {
+      header { flex-direction: column; align-items: flex-start; }
+      header h1 { font-size: 18px; margin-bottom: 10px; width: 100%; text-align: center; }
+      .logout-btn { width: 100%; padding: 10px; font-size: 16px; }
+      .card { padding: 12px; }
+      .card h2 { font-size: 16px; }
+      table, thead, tbody, th, td, tr { display: block; width: 100%; }
+      thead { display: none; }
+      tr { margin-bottom: 15px; background: rgba(0,0,0,0.6); border-radius: 8px; padding: 10px; }
+      td { text-align: left; border: none; padding: 6px 10px; font-size: 14px; }
+      td::before { content: attr(data-label); font-weight: bold; color: gold; display: block; margin-bottom: 4px; }
+      .btn-edit, .btn-del { width: 48%; display: inline-block; text-align: center; font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Lumbung Literasi 💰 </h1>
+    <button class="logout-btn" onclick="logout()">Keluar</button>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>📜 Welcome, Treasure!</h2>
+      <p>Ini adalah dashboard Lumbung Literasi.  
+         Setiap harta yang kita simpan di Lumbung Literasi adalah benih kebaikan untuk sampai pada Ridhonya.  ✨</p>
+    </div>
+
+    <div class="card">
+      <h2>💰 Lumbung</h2>
+      <p><span id="saldo">Rp0</span></p>
+    </div>
+
+    <div class="card">
+      <h2>➕ Tambah Transaksi</h2>
+      <form id="transaksiForm">
+        <input type="date" id="tanggal" required>
+        <select id="jenis" required>
+          <option value="Pemasukan">Income</option>
+          <option value="Pengeluaran">Outcome</option>
+        </select>
+        <input type="number" id="jumlah" placeholder="Jumlah (Rp)" required>
+        <input type="text" id="keterangan" placeholder="Keterangan" required>
+        <button type="submit" class="btn-add">Tambah</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>📖 Catatan Transaksi</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Tanggal</th>
+            <th>Jenis</th>
+            <th>Jumlah</th>
+            <th>Keterangan</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="dataTransaksi"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>🗓️ Catatan Bulanan</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Bulan</th>
+            <th>Catatan</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="catatanBulanan"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script>
+    if (localStorage.getItem("isLoggedIn") !== "true") {
+      window.location.href = "index.html";
+    }
+    function logout() {
+      localStorage.removeItem("isLoggedIn");
+      window.location.href = "index.html";
+    }
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBQx3F_LDsA0VI713PyXTIth7CnSgvqwSg",
+      authDomain: "lumbung-literasi.firebaseapp.com",
+      databaseURL: "https://lumbung-literasi-default-rtdb.firebaseio.com",
+      projectId: "lumbung-literasi",
+      storageBucket: "lumbung-literasi.firebasestorage.app",
+      messagingSenderId: "835937584242",
+      appId: "1:835937584242:web:c11ac688978ccd9e59eeeb",
+      measurementId: "G-SNHTZQT1KY"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const transaksiForm = document.getElementById("transaksiForm");
+    const dataTransaksi = document.getElementById("dataTransaksi");
+    const saldoEl = document.getElementById("saldo");
+    const catatanBulanan = document.getElementById("catatanBulanan");
+
+    function formatRupiah(amount) {
+      return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        minimumFractionDigits: 0
+      }).format(amount);
+    }
+
+    // --- Transaksi ---
+    transaksiForm.addEventListener("submit", e => {
+      e.preventDefault();
+      const transaksi = {
+        tanggal: document.getElementById("tanggal").value,
+        jenis: document.getElementById("jenis").value,
+        jumlah: parseInt(document.getElementById("jumlah").value),
+        keterangan: document.getElementById("keterangan").value
+      };
+      db.ref("transaksi").push(transaksi);
+      transaksiForm.reset();
+    });
+
+    db.ref("transaksi").on("value", snapshot => {
+      dataTransaksi.innerHTML = "";
+      let saldo = 0;
+      snapshot.forEach(child => {
+        const item = child.val();
+        const id = child.key;
+        if (item.jenis === "Pemasukan") saldo += item.jumlah;
+        else saldo -= item.jumlah;
+        const tr = `
+          <tr>
+            <td data-label="Tanggal">${item.tanggal}</td>
+            <td data-label="Jenis">${item.jenis}</td>
+            <td data-label="Jumlah">${formatRupiah(item.jumlah)}</td>
+            <td data-label="Keterangan">${item.keterangan}</td>
+            <td data-label="Aksi">
+              <button class="btn-edit" onclick="editTransaksi('${id}','${item.tanggal}','${item.jenis}',${item.jumlah},'${item.keterangan}')">Edit</button>
+              <button class="btn-del" onclick="hapusTransaksi('${id}')">Hapus</button>
+            </td>
+          </tr>`;
+        dataTransaksi.innerHTML += tr;
+      });
+      saldoEl.innerText = formatRupiah(saldo);
+    });
+
+    function hapusTransaksi(id){ db.ref("transaksi/"+id).remove(); }
+    function editTransaksi(id,tanggal,jenis,jumlah,keterangan){
+      document.getElementById("tanggal").value=tanggal;
+      document.getElementById("jenis").value=jenis;
+      document.getElementById("jumlah").value=jumlah;
+      document.getElementById("keterangan").value=keterangan;
+      transaksiForm.onsubmit=e=>{
+        e.preventDefault();
+        db.ref("transaksi/"+id).set({
+          tanggal:document.getElementById("tanggal").value,
+          jenis:document.getElementById("jenis").value,
+          jumlah:parseInt(document.getElementById("jumlah").value),
+          keterangan:document.getElementById("keterangan").value
+        });
+        transaksiForm.reset();
+        transaksiForm.onsubmit=defaultSubmit;
+      }
+    }
+    function defaultSubmit(e){
+      e.preventDefault();
+      const transaksi={tanggal:document.getElementById("tanggal").value,jenis:document.getElementById("jenis").value,jumlah:parseInt(document.getElementById("jumlah").value),keterangan:document.getElementById("keterangan").value};
+      db.ref("transaksi").push(transaksi);
+      transaksiForm.reset();
+    }
+    transaksiForm.onsubmit=defaultSubmit;
+
+    // --- Catatan Bulanan ---
+    const bulanList = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+
+    db.ref("catatan_bulanan").on("value", snapshot=>{
+      catatanBulanan.innerHTML="";
+      bulanList.forEach((bulan,i)=>{
+        let catatan="";
+        snapshot.forEach(child=>{
+          if(child.key===bulan) catatan=child.val().catatan;
+        });
+        const tr=`
+          <tr>
+            <td data-label="Bulan">${bulan}</td>
+            <td data-label="Catatan"><input type="text" id="catatan-${i}" value="${catatan||""}" style="width:90%"></td>
+            <td data-label="Aksi">
+              <button class="btn-edit" onclick="simpanCatatan('${bulan}',${i})">Simpan</button>
+              <button class="btn-del" onclick="hapusCatatan('${bulan}')">Hapus</button>
+            </td>
+          </tr>`;
+        catatanBulanan.innerHTML+=tr;
+      });
+    });
+
+    function simpanCatatan(bulan,i){
+      const val=document.getElementById("catatan-"+i).value;
+      db.ref("catatan_bulanan/"+bulan).set({catatan:val});
+    }
+    function hapusCatatan(bulan){
+      db.ref("catatan_bulanan/"+bulan).remove();
+    }
+  </script>
+</body>
+</html>
